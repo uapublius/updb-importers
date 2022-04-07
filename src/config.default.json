@@ -1,0 +1,22 @@
+{
+  "database": {
+    "connection": {
+      "host": "127.0.0.1",
+      "port": 5432,
+      "user": "",
+      "database": "phenomenon"
+    }
+  },
+  "sources": {
+    "nicap": {
+      "file": "",
+      "root": ""
+    },
+    "mufon": {
+      "path": ""
+    },
+    "nuforc": {
+      "path": ""
+    }
+  }
+}

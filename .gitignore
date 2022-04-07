@@ -1,0 +1,4 @@
+log/
+out/
+node_modules/
+src/config.json
