@@ -15,7 +15,6 @@ export type Report = {
   description?: string;
   source: number;
   source_id: string;
-  raw: Record<string, any>;
 };
 
 export type Attachment = {

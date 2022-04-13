@@ -19,7 +19,6 @@ export function recordToReport(record: NuforcRecord, file: string): FullRecord {
   let report = {
     date,
     description,
-    raw: record,
     source: SOURCE_NUFORC,
     source_id: record.id.toString()
   };

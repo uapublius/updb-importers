@@ -12,7 +12,6 @@ export default (record: MufonRecord): FullRecord => {
   let report = {
     date: buildDate(record),
     description,
-    raw: record,
     source: SOURCE_MUFON,
     source_id: record.id.toString()
   };

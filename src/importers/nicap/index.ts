@@ -83,7 +83,6 @@ async function recordToReport(record: NicapRecord): Promise<FullRecord> {
   let report = {
     date,
     description,
-    raw: record,
     source: SOURCE_NICAP,
     source_id: id,
     date_detail: dateDetail

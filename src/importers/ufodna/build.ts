@@ -111,7 +111,6 @@ export function recordToReport(record: UfoDnaRecord, file: string, referencesMap
     date: value,
     date_detail: detail,
     description: record.text,
-    raw: record,
     source: SOURCE_UFODNA,
     source_id: record.id.toString()
   };
