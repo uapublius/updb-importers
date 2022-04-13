@@ -7,8 +7,9 @@ Parses and normalizes sundry UFO databases to a common format.
 | ✅ NUFORC |
 | ✅ MUFON |
 | ✅ NICAP |
+| ✅ UFODNA.COM |
 
-⚠️ Check the `log/` folder for a listing of records that could not be parsed because of an invalid date or location.
+⚠️ Check the `failed/` folder for a listing of records that could not be parsed because of an invalid date or location.
 
 ## Database
 
@@ -29,4 +30,4 @@ Parses and normalizes sundry UFO databases to a common format.
 To get started writing your own importer (simplified):
   * Write a function that converts your records into a [`Report`](src/types.ts) and a [`Location`](src/types.ts)
   * Call [`createReport(Location, Report)`](src/report.ts)
-  * Check out the [existing importers](src/importers) for the full details.
+  * Check out the [existing importers](src/importers) for a starting point.

@@ -8,6 +8,7 @@
     }
   },
   "sources": {
+    "prefix": "",
     "nicap": {
       "file": "",
       "root": ""
@@ -17,6 +18,10 @@
     },
     "nuforc": {
       "path": ""
+    },
+    "ufodna": {
+      "path": "",
+      "sourcesPath": ""
     }
   }
 }
