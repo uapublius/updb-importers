@@ -22,7 +22,6 @@ function cleanHrefs(document: Document) {
   for (const skippedHref of skippedHrefs) {
     document.querySelector(`a[href='${skippedHref}']`)?.remove();
   }
-
   return skippedHrefs;
 }
 
