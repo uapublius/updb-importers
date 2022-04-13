@@ -1,21 +1,43 @@
 import { Knex } from 'knex';
-import { Report, Location, Attachment } from './types';
+import { Report, Location, Attachment, Reference } from './types';
+import { FullRecord } from './sources';
 
-export let createReport = (connection: Knex<any, unknown>) => async (locationEntry: Location, reportEntry: Report, attachmentEntries: Attachment[]) => {
+export let createReport = (connection: Knex<any, unknown>) => async (fullRecord: FullRecord) => {
   return connection.transaction(async (trx) => {
-    let locationRecord = await addLocation(trx, locationEntry);
+    let locationRecord = await createLocation(trx, fullRecord.location);
 
-    reportEntry.location = locationRecord.id;
+    fullRecord.report.location = locationRecord.id;
 
-    let reportRecord = await addReport(trx, reportEntry);
+    let reportRecord = await create(trx, fullRecord.report);
 
-    for (const attachmentEntry of attachmentEntries) {
-      await addAttachment(trx, attachmentEntry, reportRecord);
+    for (const attachmentEntry of fullRecord.attachments) {
+      await createAttachment(trx, attachmentEntry, reportRecord);
+    }
+
+    for (const referenceEntry of fullRecord.references) {
+      if (referenceEntry.text) {
+        let { id } = await createReference(trx)(referenceEntry.text);
+        referenceEntry.id = id;
+      }
+      await createReportReference(trx, reportRecord, referenceEntry);
     }
   });
 };
 
-async function addAttachment(trx: Knex.Transaction, attachmentEntry: Attachment, reportRecord: Report) {
+export let createReference = (connection: Knex<any, unknown>) => async (text: string) => {
+  let [referenceRecord] = await connection('api.reference').insert({ text }, 'id')
+    .onConflict(['hash'])
+    .merge();
+  return referenceRecord;
+};
+
+async function createReportReference(trx: Knex.Transaction, reportRecord: Report, referenceEntry: Reference) {
+  return trx('api.report_reference').insert({ report: reportRecord.id, reference: referenceEntry.id })
+    .onConflict(['report', 'reference'])
+    .merge();
+}
+
+async function createAttachment(trx: Knex.Transaction, attachmentEntry: Attachment, reportRecord: Report) {
   let attachmentRecords = trx('api.attachment');
   let [attachmentRecord] = await attachmentRecords.insert({ ...attachmentEntry, report: reportRecord.id }, 'id')
     .onConflict(['url', 'report'])
@@ -24,7 +46,7 @@ async function addAttachment(trx: Knex.Transaction, attachmentEntry: Attachment,
   return attachmentRecord;
 }
 
-async function addReport(trx: Knex.Transaction, reportEntry: Report) {
+async function create(trx: Knex.Transaction, reportEntry: Report) {
   let reportRecords = trx('api.report');
   let [reportRecord] = await reportRecords.insert(reportEntry, 'id')
     .onConflict(['source', 'source_id'])
@@ -33,7 +55,7 @@ async function addReport(trx: Knex.Transaction, reportEntry: Report) {
   return reportRecord;
 }
 
-async function addLocation(trx: Knex.Transaction, locationEntry: Location) {
+async function createLocation(trx: Knex.Transaction, locationEntry: Location) {
   let locationRecords = trx('api.location');
   let [locationRecord] = await locationRecords.insert(locationEntry, 'id')
     .onConflict(['city', 'district', 'country'])

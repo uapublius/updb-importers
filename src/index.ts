@@ -1,9 +1,9 @@
-import fs from 'fs/promises';
 import knex from 'knex';
 import config from './config.json';
 import ImportMufon from './importers/mufon';
 import ImportNuforc from './importers/nuforc';
 import ImportNicap from './importers/nicap';
+import ImportUfoDna from './importers/ufodna';
 
 let connection = knex({
   client: 'pg',
@@ -11,11 +11,10 @@ let connection = knex({
 });
 
 (async () => {
-  await Promise.all([
-    ImportMufon.start(connection),
-    ImportNuforc.start(connection),
-    ImportNicap.start(connection)
-  ]);
+  await ImportNicap(connection);
+  await ImportNuforc(connection);
+  await ImportMufon(connection);
+  await ImportUfoDna(connection);
 
   console.log('Done..');
   process.exit();

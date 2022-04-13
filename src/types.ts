@@ -22,3 +22,8 @@ export type Attachment = {
   url: string;
   report?: number;
 };
+
+export type Reference = {
+  id?: number;
+  text?: string;
+};
