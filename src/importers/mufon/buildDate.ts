@@ -6,12 +6,15 @@ export function buildDate(record: MufonRecord) {
   let day = '';
   let time = '';
 
+  let eventDateParts = record.eventDate.substring(0, 10).split('-');
+  let submitDateParts = record.submitDate.substring(0, 10).split('-');
+
   if (record.eventDate.length >= 10) {
-    [year, month, day] = record.eventDate.substring(0, 10).split('-');
+    [year, month, day] = eventDateParts;
     time = record.eventDate.substring(10);
   }
   else {
-    [year, month, day] = record.submitDate.substring(0, 10).split('-');
+    [year, month, day] = submitDateParts;
     time = record.eventDate;
   }
 
@@ -25,6 +28,7 @@ export function buildDate(record: MufonRecord) {
 
   if (hour === '12') hour = '00';
   if (meridiem === 'PM') hour = (parseInt(hour, 10) + 12).toString();
+  if (year === '0000') year = submitDateParts[0];
 
   let date = `${year}-${month}-${day} ${hour}:${minute}:00`;
 

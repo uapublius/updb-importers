@@ -26,3 +26,14 @@ export type Reference = {
   id?: number;
   text?: string;
 };
+
+export type Document = {
+  id?: number;
+  name: string;
+};
+
+export type DocumentPage = {
+  document?: number;
+  page?: number;
+  text: string;
+};

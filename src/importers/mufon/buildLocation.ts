@@ -31,7 +31,6 @@ export function buildLocation(record: MufonRecord) {
     }
   }
 
-
   // single part like "CN" or "Los Angeles"
   else if (locationRecord.length === 1) {
     if (isLastPartCountry) {
@@ -52,15 +51,8 @@ export function buildLocation(record: MufonRecord) {
   }
 
   for (let key of Object.keys(location)) {
-    location[key] = location[key].toUpperCase();
+    location[key] = cleanText(location[key].toUpperCase());
   }
 
-  return {
-    city: cleanText(location.city),
-    district: cleanText(location.district),
-    country: cleanText(location.country),
-    continent: cleanText(location.continent),
-    water: cleanText(location.water),
-    other: cleanText(location.other)
-  };
+  return location;
 }

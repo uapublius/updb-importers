@@ -1,3 +1,4 @@
+import fs from 'fs/promises';
 import knex from 'knex';
 import config from './config.json';
 import ImportMufon from './importers/mufon';
@@ -13,9 +14,13 @@ let connection = knex({
 (async () => {
   await ImportNicap(connection);
   await ImportNuforc(connection);
-  await ImportMufon(connection);
+
+  let failed = await ImportMufon(connection);
+  console.log(`[MUFON]  Done. ${failed.length} failed. See logs for details.`);
+  await fs.writeFile('failed/failed-mufon.json', JSON.stringify(failed, null, 2));
+
   await ImportUfoDna(connection);
 
-  console.log('Done..');
+  console.log('Done.');
   process.exit();
 })();
