@@ -17,6 +17,10 @@ export default async function start(connection: Knex<any, unknown>) {
   let completed = 0;
   console.log(`[NUFORC] ${files.length} files found.`);
 
+  setInterval(async () => {
+    console.log(`[NUFORC] Completed: ${completed}/${files.length}`);
+  }, 3000);
+
   for (const file of files) {
     try {
       let transformed = await queue.run(file);
@@ -26,7 +30,6 @@ export default async function start(connection: Knex<any, unknown>) {
     }
 
     completed++;
-    console.log(`[NUFORC] (${completed}/${files.length}) ${file.replace(config.sources.prefix, '')}`);
   }
 
   console.log(`[NUFORC] ${files.length} files transformed.`);

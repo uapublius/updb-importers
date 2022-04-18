@@ -151,7 +151,6 @@ export function buildDate(record: UfoDnaRecord) {
   eventDate = eventDate.replace(/^(\d{4}) (\d{2}:\d{2})$/, 'Jan 1 $1 $2');
 
   let parsed = chrono.parse(eventDate, { timezone: "UTC" });
-
   let detail = record.event_date;
 
   if (!parsed?.length) {
@@ -167,21 +166,11 @@ export function buildDate(record: UfoDnaRecord) {
 
   let [date] = parsed;
 
-  if (date.start.get('year') >= 2022) {
-    detail = eventDate;
-
-    let year = eventDate.match(/.*(\d{4}).*/);
-
-    if (year?.length) {
-      [date] = chrono.parse("01/01/" + year[1], { timezone: "UTC" });
-    }
-    else {
-      throw new Error('Cannot parse future date: ' + eventDate);
-    }
+  if (date.start.get('year') > 2007) {
+    throw new Error('Cannot parse future date: ' + eventDate);
   }
 
   let start = date.start;
-
   let value = `${start.get('year')}-${start.get('month')}-${start.get('day')} ${start.get('hour')}:${start.get('minute')}:${start.get('second')}`;
 
   return {

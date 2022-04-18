@@ -11,17 +11,16 @@ let provincesUpperCased = provinces.map(p => {
   return p;
 });
 
-export async function walk(directoryName: string, results: string[] = [], cb?: (string) => {}) {
+export async function walk(directoryName: string, filter = (f: string) => true, results: string[] = []) {
   let files = await fs.readdir(directoryName, { withFileTypes: true });
 
   for (let file of files) {
     let fullPath = path.join(directoryName, file.name);
 
     if (file.isDirectory()) {
-      await walk(fullPath, results, cb);
+      await walk(fullPath, filter, results);
     } else {
-      results.push(fullPath);
-      if (cb) cb(fullPath);
+      if (filter(file.name)) results.push(fullPath);
     }
   }
 

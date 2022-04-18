@@ -25,8 +25,7 @@ export function buildLocation(record: NuforcRecord) {
     location = { city: '', district: '', country: '' };
   }
   else {
-    // console.warn('[NUFORC] Malformed location: ' + record.location);
-    location = { city: record.location, district: '', country: '' };
+    location = { city: '', district: '', country: '', other: record.location };
   }
 
   return {
@@ -42,6 +41,7 @@ export function buildLocation(record: NuforcRecord) {
 function buildCountryDistrictByName(name: string) {
   let country = '';
   let district = '';
+  let other = '';
 
   country = getCountryAbbreviationByName(name);
 
@@ -60,11 +60,10 @@ function buildCountryDistrictByName(name: string) {
   }
 
   if (!country) {
-    console.warn('[NUFORC] Could not find country code for: name: ' + name, ' with district: ' + district);
-    // throw new Error('Could not find country code for: ' + name);
+    other = name;
   }
 
-  return { country, district };
+  return { country, district, other };
 }
 
 function buildCityCountry(locationRecord: string[], countryRaw?: string) {
@@ -112,9 +111,6 @@ export function buildLocationLength1(locationRecord: string[], record: NuforcRec
     let { country, district } = buildCountryDistrictByName(locationParts1[3]);
     let city = locationParts1[2]?.trim();
     district = district || locationParts1[1]?.trim();
-    // if (!isDistrictOf(country, district)) {
-    //   console.warn(`[NUFORC] ${district} is not a district of ${country}\n` + locationRecord);
-    // }
     return { city, district, country };
   }
 
@@ -163,13 +159,8 @@ export function buildLocationLength2(locationRecord: string[]) {
 
   if (locationParts2 && locationParts2.length === 3) {
     let { city, country } = buildCityCountry(locationRecord, locationParts2[2]);
-    // if (!isDistrictOf(country, district)) {
-    //   console.warn(`[NUFORC] ${district} is not a district of ${country}\n` + locationRecord);
-    // }
     return { city, district, country };
   }
-
-  // console.warn('[NUFORC] Could not determine country for: ' + locationRecord);
 
   return { city, district, country: '' };
 }
@@ -182,10 +173,6 @@ export function buildLocationLength3(locationRecord: string[], record: NuforcRec
   let countryRaw = locationRecord[2]?.trim();
   let { city, country } = buildCityCountry(locationRecord, countryRaw);
   let district = locationRecord[1]?.trim();
-
-  // if (!isDistrictOf(country, district)) {
-  //   console.warn(`[NUFORC] ${district} is not a district of ${country}\n` + locationRecord);
-  // }
 
   return { city, district, country };
 }

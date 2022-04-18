@@ -32,5 +32,12 @@ export function buildDate(record: MufonRecord) {
 
   let date = `${year}-${month}-${day} ${hour}:${minute}:00`;
 
+  let now = new Date();
+  let parsedDate = new Date(parseInt(year), parseInt(month), parseInt(day), parseInt(hour), parseInt(minute), 0);
+
+  if (+parsedDate > +now) {
+    throw new Error('Cannot parse future date: ' + date);
+  }
+
   return date;
 }

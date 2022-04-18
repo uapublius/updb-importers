@@ -13,7 +13,7 @@ export default async function start(connection: Knex<any, unknown>) {
   console.log('[MUFON] Starting...');
   let addFn = createReport(connection);
 
-  setInterval(async () => {
+  setInterval(() => {
     console.log(`[MUFON] Completed: ${startId - remaining}/${startId}`);
   }, 3000);
 
