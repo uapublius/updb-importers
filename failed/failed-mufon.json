@@ -397,8 +397,6 @@
   121267,
   "Cannot parse future date: 2022-03-18 15:01:00",
   121264,
-  "Cannot parse future date: 2022-03-18 00:00:00",
-  121254,
   "Cannot parse future date: 2022-10-16 21:00:00",
   118727,
   "insert into \"api\".\"report\" (\"date\", \"description\", \"location\", \"source\", \"source_id\") values ($1, $2, $3, $4, $5) on conflict (\"source\", \"source_id\") do update set \"date\" = excluded.\"date\", \"description\" = excluded.\"description\", \"location\" = excluded.\"location\", \"source\" = excluded.\"source\", \"source_id\" = excluded.\"source_id\" returning \"id\" - invalid input syntax for type timestamp: \"-undefined-undefined 00:00:00\"",
