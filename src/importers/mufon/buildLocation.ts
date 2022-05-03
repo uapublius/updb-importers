@@ -1,16 +1,28 @@
-import { MufonRecord } from './../../sources';
+import { MufonRecord } from "./../../sources";
 import { Location } from "../../types";
 import { countries } from "countries-list";
-import { cleanText } from '../../utils';
+import { cleanText, getFullDistrictName, isDistrictOf } from "../../utils";
+import waterBodies from "../../lib/water-bodies";
 
 export function buildLocation(record: MufonRecord) {
   let location: Location;
-  let locationRecord = record.location.split(',').map(s => s.trim()).filter(s => s);
-  let isLastPartCountry = countries[locationRecord[locationRecord.length - 1] as keyof typeof countries] !== undefined;
+  let locationRecord = record.location
+    .split(",")
+    .map(s => s.trim())
+    .filter(s => s);
+  let isLastPartCountry =
+    countries[locationRecord[locationRecord.length - 1] as keyof typeof countries] !== undefined;
+
+  let countryCandidate = "";
+  let districtCandidate = "";
+  let cityCandidate = "";
+  let otherCandidate = "";
+  let waterCandidate = "";
+
   if (locationRecord.length >= 3) {
-    let country = locationRecord.pop() || '';
-    let district = locationRecord.pop() || '';
-    location = { city: locationRecord.join(', '), district, country };
+    countryCandidate = locationRecord.pop() || "";
+    districtCandidate = locationRecord.pop() || "";
+    cityCandidate = locationRecord.join(", ");
   }
 
   // 2 parts, like "Chicago, IL" or "London, UK"
@@ -18,16 +30,17 @@ export function buildLocation(record: MufonRecord) {
     if (isLastPartCountry) {
       if (locationRecord[0].length === 2) {
         // district/country
-        location = { city: '', district: locationRecord[0], country: locationRecord[1] };
-      }
-      else {
+        countryCandidate = locationRecord[1];
+        districtCandidate = locationRecord[0];
+      } else {
         // city/country
-        location = { city: locationRecord[0], district: '', country: locationRecord[1] };
+        countryCandidate = locationRecord[1];
+        cityCandidate = locationRecord[0];
       }
-    }
-    else {
+    } else {
       // city/district
-      location = { city: locationRecord[0], district: locationRecord[1], country: '' };
+      districtCandidate = locationRecord[1];
+      cityCandidate = locationRecord[0];
     }
   }
 
@@ -35,20 +48,25 @@ export function buildLocation(record: MufonRecord) {
   else if (locationRecord.length === 1) {
     if (isLastPartCountry) {
       // 2-letter country
-      location = { city: '', district: '', country: locationRecord[0] };
+      countryCandidate = locationRecord[0];
+    } else if (waterBodies.has(locationRecord[0].toUpperCase())) {
+      // last part is water
+      waterCandidate = locationRecord[0].toUpperCase();
+    } else {
+      // other single part (no commas)
+      otherCandidate = locationRecord[0];
     }
-    else if (locationRecord[0].length === 2) {
-      // 2-letter non-country
-      location = { city: '', district: locationRecord[0], country: '' };
-    }
-    else {
-      // not 2-letters single part
-      location = { city: locationRecord[0], district: '', country: '' };
-    }
+  } else {
+    throw new Error("Invalid location " + locationRecord);
   }
-  else {
-    throw new Error('Invalid location ' + locationRecord);
-  }
+
+  location = {
+    city: cityCandidate,
+    district: getFullDistrictName(districtCandidate, countryCandidate),
+    country: countryCandidate,
+    other: otherCandidate,
+    water: waterCandidate
+  };
 
   for (let key of Object.keys(location)) {
     location[key] = cleanText(location[key].toUpperCase());

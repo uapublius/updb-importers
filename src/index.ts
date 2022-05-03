@@ -1,26 +1,51 @@
-import fs from 'fs/promises';
-import knex from 'knex';
-import config from './config.json';
-import ImportMufon from './importers/mufon';
-import ImportNuforc from './importers/nuforc';
-import ImportNicap from './importers/nicap';
-import ImportUfoDna from './importers/ufodna';
+import fs from "fs/promises";
+import knex from "knex";
+import Logger from "js-logger";
+import config from "./config.json";
+import ImportMufon from "./importers/mufon";
+import ImportNuforc from "./importers/nuforc";
+import ImportNicap from "./importers/nicap";
+import ImportUfoDna from "./importers/ufodna";
+import ImportDocuments from "./importers/documents";
 
-let connection = knex({
-  client: 'pg',
-  connection: config.database.connection
-});
+Logger.useDefaults();
+
+let connection = knex({ client: "pg", connection: config.database.connection });
 
 (async () => {
-  await ImportNicap(connection);
-  await ImportNuforc(connection);
+  let log = [];
+  Logger.setHandler((messages, context) => {
+    for (const message of messages) {
+      console.log(message);
+      if (context.level.value < 3) {
+        log.push(message);
+      }
+    }
+  });
 
-  let failed = await ImportMufon(connection);
-  console.log(`[MUFON]  Done. ${failed.length} failed. See logs for details.`);
-  await fs.writeFile('failed/failed-mufon.json', JSON.stringify(failed, null, 2));
+  if (!config.sources.documents.disabled) {
+    await ImportDocuments(knex({ client: "pg", connection: config.database_docs.connection }));
+  }
 
-  await ImportUfoDna(connection);
+  if (!config.sources.ufodna.disabled) {
+    await ImportUfoDna(connection);
+  }
 
-  console.log('Done.');
+  if (!config.sources.nicap.disabled) {
+    await ImportNicap(connection);
+  }
+
+  if (!config.sources.nuforc.disabled) {
+    await ImportNuforc(connection);
+  }
+
+  if (!config.sources.mufon.disabled) {
+    await ImportMufon(connection);
+    Logger.info(`[MUFON] Done.`);
+  }
+
+  await fs.writeFile("./out.log", log.join("\n"), { flag: "a+" });
+
+  Logger.info("Done.");
   process.exit();
 })();

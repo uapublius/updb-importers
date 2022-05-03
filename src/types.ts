@@ -2,7 +2,6 @@ export type Location = {
   city?: string;
   district?: string;
   country?: string;
-  continent?: string;
   water?: string;
   other?: string;
 };

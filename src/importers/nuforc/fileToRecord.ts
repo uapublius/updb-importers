@@ -1,5 +1,5 @@
 import path from "path";
-import { decode } from 'html-entities';
+import { decode } from "html-entities";
 import { stripUnicodeSpecial } from "../../utils";
 import { NuforcRecord } from "../../sources";
 
@@ -29,7 +29,7 @@ export function fileToRecord(file: string, tds: NodeListOf<HTMLTableCellElement>
 
       for (let jdx = 0; jdx < fields.length; jdx++) {
         let field = fields[jdx];
-        let fieldParts = field.match(/^\w+\s?: (.*)$/);
+        let fieldParts = field?.match(/^\w+\s?: (.*)$/);
 
         if (fieldParts && fieldParts.length > 1) {
           let contents = fieldParts[1];
@@ -69,13 +69,12 @@ export function fileToRecord(file: string, tds: NodeListOf<HTMLTableCellElement>
       text = font;
     } else {
       // Subsequent rows - attachments
-      let img = td.querySelector("img");
+      let imgs = td.querySelectorAll("img");
 
-      if (!img) {
-        throw new Error("non-image in attachments row: " + td.innerHTML);
+      for (let img of imgs) {
+        let src = img.src.replace(/(\.\.\/)+nuforc\.org/, "http://www.nuforc.org");
+        attachments.push(src);
       }
-
-      attachments.push(img.src);
     }
   }
 

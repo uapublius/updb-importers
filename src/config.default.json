@@ -10,21 +10,26 @@
   "sources": {
     "prefix": "",
     "nicap": {
+      "disabled": false,
       "file": "",
       "root": ""
     },
     "mufon": {
+      "disabled": false,
       "path": "",
       "startId": 0
     },
     "nuforc": {
+      "disabled": false,
       "path": ""
     },
     "ufodna": {
+      "disabled": false,
       "path": "",
       "sourcesPath": ""
     },
     "documents": {
+      "disabled": false,
       "path": ""
     }
   }

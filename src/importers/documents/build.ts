@@ -2,12 +2,7 @@ import * as chrono from "chrono-node";
 import fs from "fs/promises";
 import path from "path";
 import { JSDOM } from "jsdom";
-import {
-  cleanText,
-  getCountryAbbreviationByName,
-  getCountryForDistrict,
-  getFullDistrictName
-} from "../../utils";
+import { cleanText, getCountryAbbreviationByName, getCountryForDistrict } from "../../utils";
 import waterBodies from "../../lib/water-bodies";
 import { Location, Reference } from "../../types";
 import { UfoDnaRecord, SOURCE_UFODNA, FullRecord } from "../../sources";
@@ -58,10 +53,15 @@ export function fileToRecord(filename: string, file: string) {
     if (el.nodeName === "A") {
       let href = (el as HTMLAnchorElement).href;
       let matches = href.match(/sources?\/(\d+)\.htm$/);
+      let matches2 = href.match(/(\d+)\.htm$/);
+
       if (matches?.length > 1) {
         references.push(parseInt(matches[1]));
+      } else if (matches2?.length > 1) {
+        references.push(parseInt(matches2[1]));
       } else {
         let skip = ["articles/articles", "/geo/geo/"];
+
         if (!skip.some(s => href.includes(s))) {
           Logger.warn("Unknown link found:", href);
         }
@@ -146,6 +146,8 @@ function buildReferences(
 export function buildDate(record: UfoDnaRecord) {
   let eventDate = record.event_date;
 
+  if (eventDate === "1930") debugger;
+
   if (eventDate.match(/^\d{4}$/)?.length) {
     eventDate = "01/01/" + eventDate + " 00:00";
   }
@@ -165,6 +167,7 @@ export function buildDate(record: UfoDnaRecord) {
   eventDate = eventDate.replace(/^(\d{4}) (\d{2}:\d{2})$/, "Jan 1 $1 $2");
 
   let parsed = chrono.parse(eventDate, { timezone: "UTC" });
+
   let detail = record.event_date;
 
   if (!parsed?.length) {
@@ -173,17 +176,26 @@ export function buildDate(record: UfoDnaRecord) {
     if (year?.length) {
       parsed = chrono.parse("01/01/" + year[1], { timezone: "UTC" });
     } else {
-      throw new Error("[UFODNA] Cannot parse date: " + JSON.stringify(record));
+      throw new Error("[Documents] Cannot parse date: " + JSON.stringify(record));
     }
   }
 
   let [date] = parsed;
 
-  if (date.start.get("year") > 2007) {
-    throw new Error("[UFODNA] Cannot parse future date: " + JSON.stringify(record));
+  if (date.start.get("year") >= 2022) {
+    detail = eventDate;
+
+    let year = eventDate.match(/.*(\d{4}).*/);
+
+    if (year?.length) {
+      [date] = chrono.parse("01/01/" + year[1], { timezone: "UTC" });
+    } else {
+      throw new Error("[Documents] Cannot parse future date: " + JSON.stringify(record));
+    }
   }
 
   let start = date.start;
+
   let value = `${start.get("year")}-${start.get("month")}-${start.get("day")} ${start.get(
     "hour"
   )}:${start.get("minute")}:${start.get("second")}`;
@@ -253,7 +265,7 @@ export function buildLocation(record: UfoDnaRecord) {
 
   location = {
     city: cityCandidate,
-    district: getFullDistrictName(districtCandidate, countryCandidate),
+    district: districtCandidate,
     country: countryCandidate,
     other: otherCandidate,
     water: waterCandidate

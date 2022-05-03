@@ -1,32 +1,42 @@
-import { Knex } from 'knex';
-import Piscina from 'piscina';
-import { createReport } from '../../report';
-import config from '../../config.json';
+import { Knex } from "knex";
+import Piscina from "piscina";
+import Logger from "js-logger";
+import { createReport } from "../../report";
+import config from "../../config.json";
 
-let queue = new Piscina({ filename: __dirname + '/build.js' });
+let queue = new Piscina({ filename: __dirname + "/build.js", concurrentTasksPerWorker: 1 });
 let failed: any[] = [];
-
-const startId = config.sources.mufon.startId;
+let startId = config.sources.mufon.startId;
 let remaining = startId;
 
 export default async function start(connection: Knex<any, unknown>) {
-  console.log('[MUFON] Starting...');
+  Logger.info("[MUFON] Starting...");
   let addFn = createReport(connection);
 
-  setInterval(() => {
-    console.log(`[MUFON] Completed: ${startId - remaining}/${startId}`);
-  }, 3000);
+  return new Promise(async resolve => {
+    setInterval(() => {
+      Logger.info(`[MUFON] Completed: ${startId - remaining}/${startId}`);
+      if (remaining === 0) resolve(null);
+    }, 3000);
 
-  for (let idx = startId; idx > 0; idx--) {
-    try {
-      let transformed = await queue.run(idx);
-      if (transformed) await addFn(transformed);
-    } catch (error) {
-      failed.push(error.message, idx);
-    } finally {
-      remaining--;
+    let transformed = [];
+
+    for (let idx = startId; idx > 0; idx -= 1) {
+      try {
+        let trans = await queue.run(idx);
+        if (trans) transformed.push(trans);
+      } catch (error) {
+        Logger.error(error.message);
+        failed.push(error.message, idx);
+      } finally {
+        remaining--;
+      }
     }
-  }
 
-  return failed;
+    for (const tra of transformed) {
+      if (tra) addFn(tra);
+    }
+
+    return failed;
+  });
 }

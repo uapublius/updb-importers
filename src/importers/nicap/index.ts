@@ -1,22 +1,24 @@
-import { createReadStream } from 'fs';
-import fs from 'fs/promises';
-import * as csv from 'fast-csv';
-import { Knex } from 'knex';
-import { JSDOM } from 'jsdom';
-import { Location, Reference } from '../../types';
-import { FullRecord, NicapRecord, SOURCE_NICAP } from '../../sources';
-import { createReport } from '../../report';
-import config from '../../config.json';
-import { buildBody } from './buildBody';
-import { buildLocation } from './buildLocation';
-import { buildDateLink } from './buildDateLink';
-import { hash } from '../../utils';
+import { createReadStream } from "fs";
+import fs from "fs/promises";
+import * as csv from "fast-csv";
+import { Knex } from "knex";
+import { JSDOM } from "jsdom";
+import Logger from "js-logger";
+import { Attachment, Location, Reference } from "../../types";
+import { FullRecord, NicapRecord, SOURCE_NICAP } from "../../sources";
+import { createReport } from "../../report";
+import config from "../../config.json";
+import { buildBody } from "./buildBody";
+import { buildLocation } from "./buildLocation";
+import { buildDateLink } from "./buildDateLink";
+import { hash } from "../../utils";
+import path from "path";
 
 function cleanHrefs(document: Document) {
   let skippedHrefs = [
-    'http://www.nicap.org/ratings.htm',
-    'http://www.nicap.org/index.htm',
-    'http://www.nicap.org/'
+    "http://www.nicap.org/ratings.htm",
+    "http://www.nicap.org/index.htm",
+    "http://www.nicap.org/"
   ];
 
   for (const skippedHref of skippedHrefs) {
@@ -26,15 +28,14 @@ function cleanHrefs(document: Document) {
 }
 
 function buildReferences(document: Document, skippedHrefs: string[]) {
-  return [...document.querySelectorAll('a')]
+  return [...document.querySelectorAll("a")]
     .map(a => {
       let href = a.href;
-      if (!href.startsWith('http'))
-        href = 'http://www.nicap.org/' + href;
+      if (!href.startsWith("http")) href = "http://www.nicap.org/" + href;
       return href;
     })
     .filter(href => !skippedHrefs.includes(href))
-    .map(href => ({ text: "https://web.archive.org/web/" + href }));
+    .map(href => ({ text: href }));
 }
 
 async function buildDetails(document: Document) {
@@ -57,18 +58,17 @@ async function recordToReport(record: NicapRecord): Promise<FullRecord> {
   let references: Reference[] = [];
 
   if (link) {
-    if (!link.endsWith('.htm') && !link.endsWith('.html')) {
+    if (!link.endsWith(".htm") && !link.endsWith(".html")) {
       let text = link;
-      if (link.startsWith('http://www.nicap.org')) {
-        text = 'https://web.archive.org/web/' + link;
+      if (link.startsWith("http://www.nicap.org")) {
+        text = link;
       }
       references.push({ text });
-    }
-    else {
+    } else {
       let url = new URL(link);
-      let file = config.sources.nicap.root + url.pathname;
+      let file = path.join(config.sources.prefix, config.sources.nicap.root, url.pathname);
       try {
-        let html = await fs.readFile(file, { encoding: 'utf8' });
+        let html = await fs.readFile(file, { encoding: "utf8" });
         let { window } = new JSDOM(html);
         let document = window.document;
         let details = await buildDetails(document);
@@ -96,30 +96,49 @@ async function recordToReport(record: NicapRecord): Promise<FullRecord> {
   };
 }
 
-export default async function start(connection: Knex<any, unknown>): Promise<any[]> {
-  console.log('[NICAP] Starting...');
+let done = 0;
 
-  let failed: any[] = [];
+export default async function start(connection: Knex<any, unknown>): Promise<any[]> {
+  Logger.info("[NICAP] Starting...");
+
+  let records = [];
+
+  async function processRecords() {
+    for (const record of records) {
+      try {
+        let transformed = await recordToReport(record);
+        if (transformed) {
+          await addFn(transformed);
+        } else {
+          Logger.error("[NICAP] Could not transform", record);
+        }
+      } catch (error: any) {
+        Logger.error(error.message);
+      } finally {
+        done++;
+      }
+    }
+  }
   let addFn = createReport(connection);
 
   return new Promise((resolve, reject) => {
+    setInterval(() => {
+      Logger.info(`[NICAP] Completed: ${done}/${records.length}`);
+      if (done === records.length) resolve(null);
+    }, 3000);
+
     createReadStream(config.sources.nicap.file)
       .pipe(csv.parse({ headers: true, trim: true }))
-      .on('data', async (row: NicapRecord) => {
-        try {
-          let transformed = await recordToReport(row);
-          await addFn(transformed);
-        } catch (error: any) {
-          failed.push(error.message);
-        }
+      .on("data", async (row: NicapRecord) => {
+        records.push(row);
       })
-      .on('data-invalid', (row: NicapRecord) => console.error('[NICAP] Invalid CSV row: ', row))
-      .on('error', reject)
-      .on('close', async () => {
-        await fs.writeFile('failed/failed-nicap.json', JSON.stringify(failed, null, 2));
-        console.log(`[NICAP] ${failed.length} failed. See logs for details.`);
-        console.log('[NICAP] Done.');
-        resolve(failed);
+      .on("data-invalid", (row: NicapRecord) => Logger.error("[NICAP] Invalid CSV row: ", row))
+      .on("error", error => {
+        Logger.error("[NICAP]" + error.message);
+      })
+      .on("close", async () => {
+        Logger.info(`[NICAP] Done.`);
+        await processRecords();
       });
   });
 }

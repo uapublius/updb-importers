@@ -5,7 +5,7 @@ import { buildDate } from "./buildDate";
 import { cleanText } from "../../utils";
 import { Location } from "../../types";
 import { FullRecord, NuforcRecord, SOURCE_NUFORC } from "../../sources";
-import config from '../../config.json';
+import config from "../../config.json";
 import { fileToRecord } from "./fileToRecord";
 
 //
@@ -18,26 +18,27 @@ export function recordToReport(record: NuforcRecord, file: string): FullRecord {
   let description = buildDescription(record);
   let report = {
     date,
+    date_detail: record.event_date,
     description,
     source: SOURCE_NUFORC,
     source_id: record.id.toString()
   };
 
   let references = [];
-  let text = file.replace(config.sources.prefix, 'https://');
+  let text = file.replace(config.sources.prefix, "https://");
   references.push({ text });
 
-  return { location, report, attachments: [], references };
+  let attachments = record.attachments.map(a => ({ url: a }));
+  return { location, report, attachments, references };
 }
 
 function buildDescription(record: NuforcRecord) {
-  let desc = "";
+  let desc = record.text + "\n";
 
   if (record.shape) desc += "Shape: " + record.shape + "\n";
   if (record.duration) desc += "Duration: " + record.duration + "\n";
   if (record.characteristics) desc += "Characteristics: " + record.characteristics + "\n";
 
-  desc += "\n" + record.text;
   desc = cleanText(desc);
 
   return desc;

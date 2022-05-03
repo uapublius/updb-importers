@@ -1,16 +1,16 @@
-import fs from 'fs/promises';
-import config from '../../config.json';
-import { FullRecord, MufonRecord, SOURCE_MUFON } from './../../sources';
-import { Location } from "../../types";
+import path from "path";
+import fs from "fs/promises";
+import config from "../../config.json";
+import { FullRecord, MufonRecord, SOURCE_MUFON } from "./../../sources";
 import { buildLocation } from "./buildLocation";
 import { buildDate } from "./buildDate";
-import { JSDOM, VirtualConsole } from 'jsdom';
-import { cleanText } from '../../utils';
+import { JSDOM, VirtualConsole } from "jsdom";
+import { cleanText } from "../../utils";
 
 let virtualConsole = new VirtualConsole();
 
 function processField(r: Element) {
-  let hasLinks = [...r.querySelectorAll('a')];
+  let hasLinks = [...r.querySelectorAll("a")];
 
   if (hasLinks.length) {
     return hasLinks.map(a => a.href);
@@ -20,28 +20,39 @@ function processField(r: Element) {
 }
 
 export default async (id: string): Promise<FullRecord | null> => {
-  let filePrefix = config.sources.mufon.path + "/" + id;
+  // Logger.debug(`[${id}] Build start.`);
+  let filePrefix = path.join(config.sources.prefix, config.sources.mufon.path, id.toString());
   let file = filePrefix + ".html";
   let fileDetails = filePrefix + "-detail.html";
-  let [fileContents, fileDetailsContents] = await Promise.all([
-    await fs.readFile(file),
-    await fs.readFile(fileDetails)
-  ]);
+  let fileContents = "";
+  let fileDetailsContents = "";
 
-  if (fileContents.includes('Cases Found = 0')) {
+  try {
+    let fileCont = await Promise.all([await fs.readFile(file), await fs.readFile(fileDetails)]);
+    fileContents = fileCont[0].toString();
+    fileDetailsContents = fileCont[1].toString();
+  } catch (error) {
+    return null;
+  }
+
+  if (fileContents.includes("Cases Found = 0")) {
     return null;
   }
 
   let dom = new JSDOM(fileContents, { virtualConsole });
   let domDetails = new JSDOM(fileDetailsContents, { virtualConsole });
 
-  let recordRow = dom.window.document.querySelectorAll('form[name="mufon_form"] > table > tbody > tr:nth-child(3) > td');
-  let recordDetail = domDetails.window.document.querySelectorAll('body > center > table > tbody > tr:nth-child(2)');
+  let recordRow = dom.window.document.querySelectorAll(
+    'form[name="mufon_form"] > table > tbody > tr:nth-child(3) > td'
+  );
+  let recordDetail = domDetails.window.document.querySelectorAll(
+    "body > center > table > tbody > tr:nth-child(2)"
+  );
 
-  let [_, submitDate, eventDate, summary, location, __, attachments] = [...recordRow].map(processField);
+  let [_, submitDate, eventDate, summary, location, __, attachments] = [...recordRow].map(
+    processField
+  );
   let [description] = [...recordDetail].map(r => cleanText(r.textContent?.trim()));
-
-  if (!eventDate) debugger;
 
   let record: MufonRecord = {
     id,
@@ -55,6 +66,7 @@ export default async (id: string): Promise<FullRecord | null> => {
 
   let report = {
     date: buildDate(record),
+    date_detail: record.eventDate,
     description: record.summary + "\n\n" + record.description,
     source: SOURCE_MUFON,
     source_id: record.id.toString()
@@ -62,6 +74,8 @@ export default async (id: string): Promise<FullRecord | null> => {
 
   let text = `https://mufoncms.com/cgi-bin/report_handler.pl?req=view_long_desc&id=${record.id}&rnd=`;
   let references = [{ text }];
+
+  // Logger.debug(`[${id}] Build done.`);
 
   return {
     location: buildLocation(record),
