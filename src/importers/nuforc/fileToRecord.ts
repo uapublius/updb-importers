@@ -1,6 +1,6 @@
 import path from "path";
 import { decode } from "html-entities";
-import { stripUnicodeSpecial } from "../../utils";
+import { cleanText, stripUnicodeSpecial } from "../../utils";
 import { NuforcRecord } from "../../sources";
 
 //
@@ -84,10 +84,10 @@ export function fileToRecord(file: string, tds: NodeListOf<HTMLTableCellElement>
     reported_date: reportedDate,
     posted_date: postedDate,
     location,
-    shape: decode(stripUnicodeSpecial(shape)),
-    duration: decode(stripUnicodeSpecial(duration)),
-    characteristics: decode(stripUnicodeSpecial(characteristics)),
-    text: decode(stripUnicodeSpecial(text)),
+    shape: cleanText(shape),
+    duration: cleanText(duration),
+    characteristics: cleanText(characteristics),
+    text: cleanText(text),
     attachments
   };
 
