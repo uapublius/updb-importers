@@ -6,6 +6,7 @@ import ImportMufon from "./importers/mufon";
 import ImportNuforc from "./importers/nuforc";
 import ImportNicap from "./importers/nicap";
 import ImportUfoDna from "./importers/ufodna";
+import ImportPhenomainon from "./importers/phenomainon";
 import ImportDocuments from "./importers/documents";
 
 Logger.useDefaults();
@@ -25,6 +26,10 @@ let connection = knex({ client: "pg", connection: config.database.connection });
 
   if (!config.sources.documents.disabled) {
     await ImportDocuments(knex({ client: "pg", connection: config.database_docs.connection }));
+  }
+
+  if (!config.sources.phenomainon.disabled) {
+    await ImportPhenomainon(connection);
   }
 
   if (!config.sources.ufodna.disabled) {
