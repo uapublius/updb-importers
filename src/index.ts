@@ -25,23 +25,29 @@ let connection = knex({ client: "pg", connection: config.database.connection });
   });
 
   if (!config.sources.documents.disabled) {
-    await ImportDocuments(knex({ client: "pg", connection: config.database_docs.connection }));
+    let connectionDocs = knex({ client: "pg", connection: config.database_docs.connection });
+    await ImportDocuments(connectionDocs);
+    Logger.info(`[DOCUMENTS] Done.`);
   }
 
   if (!config.sources.phenomainon.disabled) {
     await ImportPhenomainon(connection);
+    Logger.info(`[PHENOMAINON] Done.`);
   }
 
   if (!config.sources.ufodna.disabled) {
     await ImportUfoDna(connection);
+    Logger.info(`[UFODNA] Done.`);
   }
 
   if (!config.sources.nicap.disabled) {
     await ImportNicap(connection);
+    Logger.info(`[NICAP] Done.`);
   }
 
   if (!config.sources.nuforc.disabled) {
     await ImportNuforc(connection);
+    Logger.info(`[NUFORC] Done.`);
   }
 
   if (!config.sources.mufon.disabled) {

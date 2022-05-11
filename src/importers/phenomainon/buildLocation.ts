@@ -1,53 +1,130 @@
+import { SOURCE_NIDS, SOURCE_PILOTS, SOURCE_SKINWALKER } from "./../../sources";
 import {
   cleanText,
   getCountryAbbreviationByName,
+  getCountryForDistrict,
   getFullDistrictName,
   isDistrictOf
 } from "../../utils";
-import { PhenomainonRecord } from "../../sources";
+import { PhenomainonRecord, SOURCE_BRAZILGOV, SOURCE_CANADAGOV, SOURCE_UKTNA } from "../../sources";
 import waterBodies from "../../lib/water-bodies";
 import { Location } from "../../types";
 
-export function buildLocation(record: PhenomainonRecord) {
-  let locationField = record.Location?.trim() || "";
-  let cityCandidate = "";
-  let districtCandidate = record.State?.trim() || "";
-  let countryCandidate = record.Country?.trim() || "";
+export function buildLocation(record: PhenomainonRecord, source: number) {
+  let countryOverride;
+  if (source === SOURCE_CANADAGOV) countryOverride = "CA";
+  if (source === SOURCE_BRAZILGOV) countryOverride = "BR";
+
+  record.Location = record.Location?.toUpperCase() || "";
+
+  let locationField = record.Location?.trim().toUpperCase() || "";
+  let cityCandidate = record.City?.trim().toUpperCase() || "";
+  let districtCandidate = record.State?.trim().toUpperCase() || "";
+  let countryCandidate =
+    getCountryAbbreviationByName(record.Country?.trim()) || countryOverride || "";
+
   let otherCandidate = "";
   let waterCandidate = "";
 
-  let locationFieldParts = [locationField.toUpperCase()];
+  let re = new RegExp(`, ${countryCandidate}$`);
+  locationField = locationField.replace(re, "");
+  // strip country and district from end of loc
+  re = new RegExp(`, ${districtCandidate}$`);
+  locationField = locationField.replace(re, "");
+  re = new RegExp(`, ${countryCandidate}$`);
+  locationField = locationField.replace(re, "");
+  // strip city from start of loc
+  re = new RegExp(`^${cityCandidate}, `);
+  locationField = locationField.replace(re, "");
 
-  if (locationField) {
-    let parts = locationField.toUpperCase().match(/(.*)?\,(.*)/);
-    if (parts?.length > 1) {
-      parts = parts.map(s => s?.trim());
-      parts.shift();
-      locationFieldParts = parts;
+  let location: Location;
+
+  if (cityCandidate && districtCandidate && countryCandidate) {
+    if (cityCandidate === districtCandidate) {
+      cityCandidate = locationField;
+    } else if (cityCandidate !== locationField) {
+      otherCandidate = locationField;
+    }
+  } else {
+    let locationFieldParts = [locationField.toUpperCase()];
+
+    if (locationField) {
+      let parts = locationField.toUpperCase().match(/(.*)?\,(.*)/);
+      if (parts?.length > 1) {
+        parts = parts.map(s => s?.trim());
+        parts.shift();
+        locationFieldParts = parts;
+      }
+    }
+
+    let locationCandidate;
+
+    if (locationFieldParts.length === 1) {
+      locationCandidate = buildLocationLength1(locationFieldParts, record);
+    } else if (locationFieldParts.length === 2) {
+      locationCandidate = buildLocationLength2(locationFieldParts);
+    } else if (locationFieldParts.length === 3) {
+      locationCandidate = buildLocationLength3(locationFieldParts, record);
+    } else if (locationFieldParts.length === 4 && locationFieldParts[2] === locationFieldParts[3]) {
+      locationFieldParts.pop();
+      locationCandidate = buildLocationLength3(locationFieldParts, record);
+    } else {
+      otherCandidate = record.Location;
+    }
+
+    if (!locationCandidate.district) {
+      let countryHoldsDistrict = getCountryForDistrict(locationCandidate.country);
+      let cityHoldsDistrict = getCountryForDistrict(locationCandidate.city);
+      if (countryHoldsDistrict) {
+        // no district, check if the country field actually holds district
+        locationCandidate.district = locationCandidate.country;
+        locationCandidate.country = countryHoldsDistrict;
+      } else if (cityHoldsDistrict) {
+        // no district, check if the city field actually holds district
+        locationCandidate.district = locationCandidate.city;
+        locationCandidate.city = "";
+      }
+    }
+
+    if (locationCandidate.city) cityCandidate = locationCandidate.city;
+    if (locationCandidate.district) districtCandidate = locationCandidate.district;
+    if (locationCandidate.country) countryCandidate = locationCandidate.country;
+    if (locationCandidate.water) waterCandidate = locationCandidate.water;
+    if (locationCandidate.other) otherCandidate = locationCandidate.other;
+  }
+
+  if (!countryCandidate) {
+    let misplacedCountryCandidate = getCountryAbbreviationByName(districtCandidate);
+
+    if (misplacedCountryCandidate) {
+      countryCandidate = misplacedCountryCandidate;
+      districtCandidate = "";
+    } else {
+      if (source === SOURCE_UKTNA) {
+        countryCandidate = "GB";
+      }
     }
   }
 
-  let location: Location;
-  let locationCandidate;
-
-  if (locationFieldParts.length === 1) {
-    locationCandidate = buildLocationLength1(locationFieldParts, record);
-  } else if (locationFieldParts.length === 2) {
-    locationCandidate = buildLocationLength2(locationFieldParts);
-  } else if (locationFieldParts.length === 3) {
-    locationCandidate = buildLocationLength3(locationFieldParts, record);
-  } else if (locationFieldParts.length === 4 && locationFieldParts[2] === locationFieldParts[3]) {
-    locationFieldParts.pop();
-    locationCandidate = buildLocationLength3(locationFieldParts, record);
-  } else {
-    otherCandidate = record.Location;
+  if (waterBodies.has(districtCandidate)) {
+    waterCandidate = districtCandidate;
+    districtCandidate = "";
   }
 
-  if (locationCandidate.city) cityCandidate = locationCandidate.city;
-  if (locationCandidate.district) districtCandidate = locationCandidate.district;
-  if (locationCandidate.country) countryCandidate = locationCandidate.country;
-  if (locationCandidate.water) waterCandidate = locationCandidate.water;
-  if (locationCandidate.other) otherCandidate = locationCandidate.other;
+  if (districtCandidate === "U.K." && !countryCandidate) {
+    countryCandidate = "GB";
+    districtCandidate = "";
+  }
+
+  if (source === SOURCE_SKINWALKER) {
+    cityCandidate = cityCandidate.replace(/, UT$/, "");
+    countryCandidate = "US";
+    districtCandidate = "UTAH";
+  }
+
+  if (source === SOURCE_NIDS) {
+    countryCandidate = "US";
+  }
 
   location = {
     city: cityCandidate,

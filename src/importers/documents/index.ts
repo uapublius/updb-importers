@@ -1,22 +1,30 @@
 import fs from "fs/promises";
-import Piscina from "piscina";
 import { Knex } from "knex";
 import Logger from "js-logger";
-import { createDocument, createDocumentPage } from "../../document";
+import { createDocument, createDocumentPages } from "../../document";
 import { walk } from "../../utils";
 import config from "../../config.json";
-
-let queue = new Piscina({ filename: __dirname + "/build.js" });
+import path from "path";
 
 export default async function start(connection: Knex<any, unknown>) {
   Logger.info("[Documents] Starting...");
 
   let sources = [];
-  for (const path of config.sources.documents.path) {
-    sources = [...sources, ...(await walk(path, f => f.endsWith(".ocrv.json")))];
+
+  for (let docPath of config.sources.documents.path) {
+    try {
+      docPath = path.join(config.sources.prefix, docPath);
+      Logger.info(`[Documents (${sources.length})] ${docPath}`);
+      sources = [...sources, ...(await walk(docPath, f => f.endsWith(".ocrv.json")))];
+    } catch (error) {
+      Logger.error(`[DOCUMENTS] ${error.message}`);
+    }
   }
+
+  Logger.info(`[Documents (${sources.length})] Built list of ${sources.length} files.`);
+
   let addDocFn = createDocument(connection);
-  let addPageFn = createDocumentPage(connection);
+  let addPagesFn = createDocumentPages(connection);
   let completed = 0;
 
   setInterval(() => {
@@ -25,7 +33,16 @@ export default async function start(connection: Knex<any, unknown>) {
 
   for (let source of sources) {
     let name = "http://" + source.replace(config.sources.prefix, "").replace(".ocrv.json", "");
-    let docSource = await fs.readFile(source);
+
+    let docSource;
+
+    try {
+      docSource = await fs.readFile(source);
+    } catch (error) {
+      Logger.error(`[DOCUMENTS] ${error.message}`);
+      continue;
+    }
+
     let documentRecord = await addDocFn({ name });
     let document;
 
@@ -36,22 +53,10 @@ export default async function start(connection: Knex<any, unknown>) {
       continue;
     }
 
-    let numPages = document.length;
-
-    if (!Array.isArray(document)) {
-      numPages = Math.max(...Object.keys(document).map(k => parseInt(k)));
-    }
-
-    for (let idx = 0; idx < numPages; idx++) {
-      try {
-        await addPageFn({
-          document: documentRecord.id,
-          page: idx + 1,
-          text: document[idx]
-        });
-      } catch (error) {
-        Logger.error(error.message);
-      }
+    try {
+      await addPagesFn(document, documentRecord.id);
+    } catch (error) {
+      Logger.error(error.message);
     }
 
     completed++;

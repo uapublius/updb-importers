@@ -138,3 +138,13 @@ export function hash(text) {
 
   return (hash >>> 0).toString(36);
 }
+
+export function object2array(o) {
+  let arr = [];
+
+  for (let idx = 0; idx < Object.keys(o).length; idx++) {
+    arr.push(o[idx]);
+  }
+
+  return arr;
+}

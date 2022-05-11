@@ -35,4 +35,5 @@ export type DocumentPage = {
   document?: number;
   page?: number;
   text: string;
+  ts?: any;
 };

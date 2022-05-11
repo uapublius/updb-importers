@@ -1,5 +1,7 @@
 # Release Checklist
 
+## Update changelog
+
 ## Transfer database
 
 In updb-importers/

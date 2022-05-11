@@ -13,7 +13,7 @@ import {
   SOURCE_NIDS,
   SOURCE_SKINWALKER,
   SOURCE_CANADAGOV,
-  SOURCE_UKGOV,
+  SOURCE_UKTNA,
   SOURCE_BRAZILGOV
 } from "../../sources";
 
@@ -40,7 +40,7 @@ export function recordToReport(record: any, source: number): FullRecord {
   if (source === SOURCE_SKINWALKER) record.State = "UT";
 
   try {
-    location = buildLocation(record);
+    location = buildLocation(record, source);
   } catch (error) {
     Logger.error(
       `[PHENOMAINON ${source}] Could not parse location ` + record.Location + " " + error.message
@@ -77,7 +77,7 @@ export function recordToReport(record: any, source: number): FullRecord {
 }
 
 function buildDescription(record: PhenomainonRecord) {
-  let desc = record["Incident"] || record["Summary Description"];
+  let desc = record["Incident"] || record["Summary Description"] || "";
 
   desc += "\n\n";
 
@@ -120,11 +120,12 @@ export default async (file: string): Promise<FullRecord> => {
   const SOURCES = {
     baass: SOURCE_BAASS,
     nids: SOURCE_NIDS,
-    bluebook: SOURCE_BLUEBOOK,
+    bluebook1: SOURCE_BLUEBOOK,
+    bluebook2: SOURCE_BLUEBOOK,
     skinwalker: SOURCE_SKINWALKER,
     pilots: SOURCE_PILOTS,
     canada: SOURCE_CANADAGOV,
-    uk: SOURCE_UKGOV,
+    uk: SOURCE_UKTNA,
     brazil: SOURCE_BRAZILGOV
   };
 

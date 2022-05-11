@@ -10,7 +10,7 @@ export const SOURCE_BLUEBOOK = 7;
 export const SOURCE_SKINWALKER = 8;
 export const SOURCE_PILOTS = 9;
 export const SOURCE_CANADAGOV = 10;
-export const SOURCE_UKGOV = 11;
+export const SOURCE_UKTNA = 11;
 export const SOURCE_BRAZILGOV = 12;
 
 type SourceRecord = {
@@ -63,6 +63,7 @@ export interface PhenomainonRecord extends SourceRecord {
   Location: string;
   Incident?: string;
   "Summary Description"?: string;
+  City?: string;
   State?: string;
   Country?: string;
   references: number[];

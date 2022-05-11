@@ -1,24 +1,29 @@
-import { Knex } from 'knex';
-import { Document, DocumentPage } from './types';
+import { Knex } from "knex";
+import { Document, DocumentPage } from "./types";
 
 export function createDocument(connection: Knex<any, unknown>) {
   return async (document: Document) => {
-    let [documentRecord] = await connection('api.document')
-      .insert(document, 'id')
-      .onConflict(['name'])
+    let [documentRecord] = await connection("api.document")
+      .insert(document, "id")
+      .onConflict(["name"])
       .merge();
 
     return documentRecord;
   };
 }
 
-export function createDocumentPage(connection: Knex<any, unknown>) {
-  return async (page: DocumentPage) => {
-    if (!page.text) return;
+export function createDocumentPages(connection: Knex<any, unknown>) {
+  return async (document: Record<string, any>, documentId: number) => {
+    let numPages = Math.max(...Object.keys(document).map(k => parseInt(k)));
 
-    await connection('api.document_page')
-      .insert(page)
-      .onConflict(['document', 'page'])
-      .merge();
+    let rows: DocumentPage[] = [];
+
+    for (let idx = 0; idx < numPages; idx++) {
+      rows.push({ text: document[idx], page: idx + 1, document: documentId });
+    }
+
+    rows = rows.filter(row => row.text);
+
+    connection.batchInsert("api.document_page", rows);
   };
 }
