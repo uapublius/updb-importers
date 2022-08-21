@@ -1,4 +1,5 @@
 export type Location = {
+  id?: number;
   city?: string;
   district?: string;
   country?: string;

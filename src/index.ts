@@ -1,17 +1,19 @@
-import fs from "fs/promises";
-import knex from "knex";
 import Logger from "js-logger";
+import knex from "knex";
+import fs from "fs/promises";
 import config from "./config.json";
-import ImportMufon from "./importers/mufon";
-import ImportNuforc from "./importers/nuforc";
-import ImportNicap from "./importers/nicap";
-import ImportUfoDna from "./importers/ufodna";
-import ImportPhenomainon from "./importers/phenomainon";
 import ImportDocuments from "./importers/documents";
+import GeolocateLocations from "./importers/geolocations";
+import ImportMufon from "./importers/mufon";
+import ImportNicap from "./importers/nicap";
+import ImportNuforc from "./importers/nuforc";
+import ImportPhenomainon from "./importers/phenomainon";
+import ImportUfoDna from "./importers/ufodna";
 
 Logger.useDefaults();
 
 let connection = knex({ client: "pg", connection: config.database.connection });
+let connectionGeo = knex({ client: "pg", connection: config.database_geo.connection });
 
 (async () => {
   let log = [];
@@ -56,6 +58,8 @@ let connection = knex({ client: "pg", connection: config.database.connection });
   }
 
   await fs.writeFile("./out.log", log.join("\n"), { flag: "a+" });
+
+  await GeolocateLocations(connection, connectionGeo);
 
   Logger.info("Done.");
   process.exit();

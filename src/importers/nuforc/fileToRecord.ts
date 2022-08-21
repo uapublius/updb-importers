@@ -1,7 +1,7 @@
-import path from "path";
 import { decode } from "html-entities";
-import { cleanText, stripUnicodeSpecial } from "../../utils";
+import path from "path";
 import { NuforcRecord } from "../../sources";
+import { cleanText, stripUnicodeSpecial } from "../../utils";
 
 //
 // File -> NuforcRecord
@@ -32,7 +32,7 @@ export function fileToRecord(file: string, tds: NodeListOf<HTMLTableCellElement>
         let fieldParts = field?.match(/^\w+\s?: (.*)$/);
 
         if (fieldParts && fieldParts.length > 1) {
-          let contents = fieldParts[1];
+          let contents = fieldParts[1].trim();
 
           switch (jdx) {
             case 0:
@@ -61,13 +61,15 @@ export function fileToRecord(file: string, tds: NodeListOf<HTMLTableCellElement>
           }
         }
       }
-    } else if (idx === 1) {
+    }
+ else if (idx === 1) {
       // Second row - body
       let font = td.querySelector("font")?.innerHTML || "";
       font = font.replace(/<br>/g, "");
       font = font.replace(/�/g, "");
       text = font;
-    } else {
+    }
+ else {
       // Subsequent rows - attachments
       let imgs = td.querySelectorAll("img");
 

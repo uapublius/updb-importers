@@ -1,9 +1,9 @@
-import fs from "fs/promises";
-import path from "path";
 import { countries } from "countries-list";
 import countries3to2 from "countries-list/dist/countries3to2.json";
-import provinces from "provinces";
 import { decode } from "html-entities";
+import provinces from "provinces";
+import fs from "fs/promises";
+import path from "path";
 
 export let provincesUpperCased = provinces.map(p => {
   if (p.name) p.name = p.name.toUpperCase();
@@ -31,13 +31,15 @@ export async function walk(
   results: string[] = []
 ) {
   let files = await fs.readdir(directoryName, { withFileTypes: true });
+  files = files.sort((a,b) => parseInt(a.name) > parseInt(b.name) ? -1 : 1);
 
   for (let file of files) {
     let fullPath = path.join(directoryName, file.name);
 
     if (file.isDirectory()) {
       await walk(fullPath, filter, results);
-    } else {
+    }
+ else {
       if (filter(file.name)) results.push(fullPath);
     }
   }
@@ -45,7 +47,7 @@ export async function walk(
   return results;
 }
 
-export function isDistrictOf(country: string = "", district: string = "") {
+export function isDistrictOf(country = "", district = "") {
   if (district) district = district.toUpperCase();
   country = getCountryAbbreviationByName(country);
   return provincesUpperCased.some(
@@ -55,7 +57,7 @@ export function isDistrictOf(country: string = "", district: string = "") {
   );
 }
 
-export let getCountryAbbreviationByName = (name: string = "") => {
+export let getCountryAbbreviationByName = (name = "") => {
   name = name.toUpperCase();
   let nameKey = name as keyof typeof countries3to2;
 

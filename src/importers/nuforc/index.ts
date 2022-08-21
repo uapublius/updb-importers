@@ -1,10 +1,10 @@
+import Logger from "js-logger";
 import { Knex } from "knex";
 import Piscina from "piscina";
-import Logger from "js-logger";
+import path from "path";
+import config from "../../config.json";
 import { createReport } from "../../report";
 import { walk } from "../../utils";
-import config from "../../config.json";
-import path from "path";
 
 let queue = new Piscina({ filename: __dirname + "/build.js", concurrentTasksPerWorker: 4 });
 
@@ -26,7 +26,8 @@ export default async function start(connection: Knex<any, unknown>) {
     try {
       let transformed = await queue.run(file);
       await createFn(transformed);
-    } catch (error: any) {
+    }
+ catch (error: any) {
       Logger.error(error.message);
     }
 

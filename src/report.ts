@@ -1,25 +1,31 @@
+import Logger from "js-logger";
 import { Knex } from 'knex';
-import { Report, Location, Attachment, Reference } from './types';
 import { FullRecord } from './sources';
+import { Report, Location, Attachment, Reference } from './types';
 
 export let createReport = (connection: Knex<any, unknown>) => async (fullRecord: FullRecord) => {
-  return connection.transaction(async (trx) => {
-    let locationRecord = await createLocation(trx, fullRecord.location);
+  return connection.transaction(async trx => {
+    try {
+      let locationRecord = await createLocation(trx, fullRecord.location);
 
-    fullRecord.report.location = locationRecord.id;
+      fullRecord.report.location = locationRecord.id;
 
-    let reportRecord = await create(trx, fullRecord.report);
+      let reportRecord = await create(trx, fullRecord.report);
 
-    for (const attachmentEntry of fullRecord.attachments) {
-      await createAttachment(trx, attachmentEntry, reportRecord);
-    }
-
-    for (const referenceEntry of fullRecord.references) {
-      if (referenceEntry.text) {
-        let { id } = await createReference(trx)(referenceEntry.text);
-        referenceEntry.id = id;
+      for (const attachmentEntry of fullRecord.attachments) {
+        await createAttachment(trx, attachmentEntry, reportRecord);
       }
-      await createReportReference(trx, reportRecord, referenceEntry);
+
+      for (const referenceEntry of fullRecord.references) {
+        if (referenceEntry.text) {
+          let { id } = await createReference(trx)(referenceEntry.text);
+          referenceEntry.id = id;
+        }
+        await createReportReference(trx, reportRecord, referenceEntry);
+      }
+    }
+    catch (error) {
+      Logger.error(error.message);
     }
   });
 };

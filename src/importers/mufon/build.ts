@@ -1,10 +1,11 @@
-import path from "path";
-import fs from "fs/promises";
-import config from "../../config.json";
-import { FullRecord, MufonRecord, SOURCE_MUFON } from "./../../sources";
-import { buildLocation } from "./buildLocation";
-import { buildDate } from "./buildDate";
+import Logger from "js-logger";
 import { JSDOM, VirtualConsole } from "jsdom";
+import fs from "fs/promises";
+import path from "path";
+import { FullRecord, MufonRecord, SOURCE_MUFON } from "./../../sources";
+import { buildDate } from "./buildDate";
+import { buildLocation } from "./buildLocation";
+import config from "../../config.json";
 import { cleanText } from "../../utils";
 
 let virtualConsole = new VirtualConsole();
@@ -20,7 +21,7 @@ function processField(r: Element) {
 }
 
 export default async (id: string): Promise<FullRecord | null> => {
-  // Logger.debug(`[${id}] Build start.`);
+  // console.log(`[${id}] Build start.`);
   let filePrefix = path.join(config.sources.prefix, config.sources.mufon.path, id.toString());
   let file = filePrefix + ".html";
   let fileDetails = filePrefix + "-detail.html";
@@ -31,7 +32,9 @@ export default async (id: string): Promise<FullRecord | null> => {
     let fileCont = await Promise.all([await fs.readFile(file), await fs.readFile(fileDetails)]);
     fileContents = fileCont[0].toString();
     fileDetailsContents = fileCont[1].toString();
-  } catch (error) {
+  }
+ catch (error) {
+    console.log(error.message);
     return null;
   }
 
